@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Eigenvalue
+Exec=eigenvalue
+Terminal=true
+Type=Application
+StartupNotify=false
+X-Purism-FormFactor=Workstation;Mobile;

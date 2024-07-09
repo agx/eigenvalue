@@ -1,0 +1,5 @@
+[wrap-git]
+directory=libcmatrix
+url=https://source.puri.sm/agx/libcmatrix
+revision=eigenvalue
+depth=1
