@@ -212,7 +212,57 @@ ev_matrix_list_rooms (GStrv unused, GError **err)
 
 
 static GString *
-ev_matrix_client (GStrv unused, GError **err)
+ev_matrix_room_details (GStrv args, GError **err)
+{
+  g_autoptr (EvFormatBuilder) builder = ev_format_builder_new ();
+  g_autoptr (CmRoom) room = NULL;
+  const char *room_id;
+  GListModel *events;
+
+  g_assert (client);
+
+  if (g_strv_length (args) < 1) {
+    g_set_error (err, G_IO_ERROR, G_IO_ERROR_FAILED, "Not enough arguments");
+    return NULL;
+  }
+  room_id = args[0];
+
+  for (guint i = 0; i < g_list_model_get_n_items (joined_rooms); i++) {
+    g_autoptr (CmRoom) r = g_list_model_get_item (joined_rooms, i);
+    const char *id = cm_room_get_id (r);
+
+    if (g_str_equal (room_id, id)) {
+      room = g_steal_pointer (&r);
+      break;
+    }
+  }
+
+  if (!room) {
+    g_set_error (err, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "Room %s not found", room_id);
+    return NULL;
+  }
+
+  ev_format_builder_set_indent (builder, INFO_INDENT);
+  ev_format_builder_add (builder, _("Room Id"), cm_room_get_id (room));
+  /* Translators: a matrix room name */
+  ev_format_builder_add (builder, _("Name"), cm_room_get_name (room));
+  ev_format_builder_add_nonnull (builder, _("Topic"), cm_room_get_topic (room));
+  ev_format_builder_add (builder, _("Encrypted"),
+                         cm_room_is_encrypted (room) ? _("Yes") : _("No"));
+  ev_format_builder_take_value (builder, _("Unread notifications"),
+                                g_strdup_printf ("%ld", cm_room_get_unread_notification_counts (room)));
+
+  events = cm_room_get_events_list (room);
+  ev_format_builder_take_value (builder, _("Events"),
+                                g_strdup_printf ("%u", g_list_model_get_n_items (events)));
+
+
+  return ev_format_builder_end (builder);
+}
+
+
+static GString *
+ev_matrix_client_details (GStrv unused, GError **err)
 {
   g_autoptr (EvFormatBuilder) builder = ev_format_builder_new ();
   gboolean logged_in;
@@ -489,6 +539,17 @@ static const EvCmdOpt matrix_room_get_event_opts[] = {
 };
 
 
+static const EvCmdOpt matrix_room_details_opts[] = {
+  {
+    .name = "room-id",
+    .desc = "The id of the room to get the details for",
+    .completer = matrix_command_opt_get_room_completion,
+  },
+  /* Sentinel */
+  { NULL }
+};
+
+
 static const EvCmdOpt matrix_get_remove_pusher_opts[] = {
   {
     .name = "number",
@@ -501,14 +562,20 @@ static const EvCmdOpt matrix_get_remove_pusher_opts[] = {
 
 static EvCmd matrix_commands[] = {
   {
-    .name = "client",
+    .name = "client-details",
     .help_summary = N_("Print client information - no request is made to the server"),
-    .func = ev_matrix_client,
+    .func = ev_matrix_client_details,
   },
   {
     .name = "rooms",
     .help_summary = N_("List currently known joined rooms - no request is made to the server"),
     .func = ev_matrix_list_rooms,
+  },
+  {
+    .name = "room-details",
+    .help_summary = N_("Get details about a room - no request is made to the server"),
+    .func = ev_matrix_room_details,
+    .opts = matrix_room_details_opts,
   },
   {
     .name = "get-event",
