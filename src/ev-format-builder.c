@@ -104,6 +104,28 @@ ev_format_builder_add (EvFormatBuilder *self, const char *key, const char *value
 }
 
 /**
+ * ev_format_builder_add_nonnull:
+ * @self: The builder
+ * @key: The key to add
+ * @value:(nullable): The value to added
+ *
+ * Adds a key value pair to the formater. If value is `NULL` nothing is
+ * added;
+ */
+void
+ev_format_builder_add_nonnull (EvFormatBuilder *self, const char *key, const char *value)
+{
+  g_assert (EV_IS_FORMAT_BUILDER (self));
+  g_assert (key);
+
+  if (!value)
+    return;
+
+  g_ptr_array_add (self->keys, g_strdup (key));
+  g_ptr_array_add (self->values, g_strdup (value));
+}
+
+/**
  * ev_format_builder_take:
  * @self: The builder
  * @key: The key to add
