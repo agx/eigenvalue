@@ -384,8 +384,8 @@ ev_matrix_get_pushers (GStrv args, GError **err)
     if (i != 0)
       ev_format_builder_add_newline (builder);
 
-    ev_format_builder_take (builder, g_strdup ("Pusher Id"),
-                            g_strdup_printf ("%d", i));
+    ev_format_builder_take_value (builder, "Pusher Id",
+                                  g_strdup_printf ("%d", i));
     ev_format_builder_add (builder, "Kind",
                            cm_pusher_get_kind_as_string (pusher));
     ev_format_builder_add (builder, "App Display Name",

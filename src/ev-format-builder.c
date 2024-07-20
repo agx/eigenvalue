@@ -131,16 +131,15 @@ ev_format_builder_add_nonnull (EvFormatBuilder *self, const char *key, const cha
  * @key: The key to add
  * @value:(nullable): The value to added
  *
- * Like [method@FormatBuilder.add] but takes ownership of `key`
- * and `value`.
+ * Like [method@FormatBuilder.add] but takes ownership of `value`
  */
 void
-ev_format_builder_take (EvFormatBuilder *self, char *key, char *value)
+ev_format_builder_take_value (EvFormatBuilder *self, const char *key, char *value)
 {
   g_assert (EV_IS_FORMAT_BUILDER (self));
   g_assert (key);
 
-  g_ptr_array_add (self->keys, key);
+  g_ptr_array_add (self->keys, g_strdup (key));
   g_ptr_array_add (self->values, value);
 }
 

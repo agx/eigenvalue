@@ -19,7 +19,7 @@ void             ev_format_builder_set_indent (EvFormatBuilder *self, int indent
 int              ev_format_builder_get_indent (EvFormatBuilder *self);
 void             ev_format_builder_add (EvFormatBuilder *self, const char *key, const char *value);
 void             ev_format_builder_add_nonnull (EvFormatBuilder *self, const char *key, const char *value);
-void             ev_format_builder_take (EvFormatBuilder *self, char *key, char *value);
+void             ev_format_builder_take_value (EvFormatBuilder *self, const char *key, char *value);
 void             ev_format_builder_add_newline (EvFormatBuilder *self);
 GString         *ev_format_builder_end (EvFormatBuilder *self);
 
