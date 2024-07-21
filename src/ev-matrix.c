@@ -84,6 +84,51 @@ on_joined_rooms_items_changed (GListModel *list,
 }
 
 
+static char *
+ev_enum_to_nick (GType g_enum_type, gint value)
+{
+  char *result;
+  g_autoptr (GEnumClass) enum_class = NULL;
+  GEnumValue *enum_value;
+
+  g_return_val_if_fail (G_TYPE_IS_ENUM (g_enum_type), NULL);
+
+  enum_class = g_type_class_ref (g_enum_type);
+
+  /* Already warned */
+  if (enum_class == NULL)
+    return g_strdup_printf ("%d", value);
+
+  enum_value = g_enum_get_value (enum_class, value);
+
+  if (enum_value == NULL)
+    result = g_strdup_printf ("%d", value);
+  else
+    result = g_strdup (enum_value->value_nick);
+
+  return result;
+}
+
+
+static CmRoom *
+get_joined_room_by_id (const char *room_id)
+{
+  CmRoom *room = NULL;
+
+  for (guint i = 0; i < g_list_model_get_n_items (joined_rooms); i++) {
+    g_autoptr (CmRoom) r = g_list_model_get_item (joined_rooms, i);
+    const char *id = cm_room_get_id (r);
+
+    if (g_str_equal (room_id, id)) {
+      room = g_steal_pointer (&r);
+      break;
+    }
+  }
+
+  return room;
+}
+
+
 static void
 on_matrix_open (GObject *object, GAsyncResult *result, gpointer user_data)
 {
@@ -227,16 +272,7 @@ ev_matrix_room_details (GStrv args, GError **err)
   }
   room_id = args[0];
 
-  for (guint i = 0; i < g_list_model_get_n_items (joined_rooms); i++) {
-    g_autoptr (CmRoom) r = g_list_model_get_item (joined_rooms, i);
-    const char *id = cm_room_get_id (r);
-
-    if (g_str_equal (room_id, id)) {
-      room = g_steal_pointer (&r);
-      break;
-    }
-  }
-
+  room = get_joined_room_by_id (room_id);
   if (!room) {
     g_set_error (err, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "Room %s not found", room_id);
     return NULL;
@@ -256,6 +292,61 @@ ev_matrix_room_details (GStrv args, GError **err)
   ev_format_builder_take_value (builder, _("Events"),
                                 g_strdup_printf ("%u", g_list_model_get_n_items (events)));
 
+
+  return ev_format_builder_end (builder);
+}
+
+
+static GString *
+ev_matrix_room_events (GStrv args, GError **err)
+{
+  g_autoptr (EvFormatBuilder) builder = ev_format_builder_new ();
+  g_autoptr (CmRoom) room = NULL;
+  const char *room_id;
+  GListModel *events;
+
+  g_assert (client);
+
+  if (g_strv_length (args) < 1) {
+    g_set_error (err, G_IO_ERROR, G_IO_ERROR_FAILED, "Not enough arguments");
+    return NULL;
+  }
+  room_id = args[0];
+
+  room = get_joined_room_by_id (room_id);
+  if (!room) {
+    g_set_error (err, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "Room %s not found", room_id);
+    return NULL;
+  }
+
+  events = cm_room_get_events_list (room);
+
+  ev_format_builder_set_indent (builder, INFO_INDENT);
+
+  ev_format_builder_take_value (builder, _("Events"),
+                                g_strdup_printf ("%u", g_list_model_get_n_items (events)));
+  for (guint i = 0; i < g_list_model_get_n_items (events); i++) {
+    g_autoptr (CmEvent) event = g_list_model_get_item (events, i);
+    CmEventType type = cm_event_get_m_type (event);
+
+    ev_format_builder_add_newline (builder);
+    ev_format_builder_add (builder, _("Event Id"), cm_event_get_id (CM_EVENT (event)));
+    /* Translators: A matrix message event type */
+    ev_format_builder_take_value (builder, _("Type"), ev_enum_to_nick (CM_TYPE_EVENT_TYPE, type));
+
+    if (type == CM_M_ROOM_MESSAGE) {
+      CmContentType content_type;
+      CmRoomMessageEvent *rev = CM_ROOM_MESSAGE_EVENT (event);
+
+      content_type = cm_room_message_event_get_msg_type (rev);
+      ev_format_builder_take_value (builder, _("Content-Type"), ev_enum_to_nick (CM_TYPE_CONTENT_TYPE,
+                                                                                 content_type));
+      if (content_type == CM_CONTENT_TYPE_TEXT) {
+        ev_format_builder_add (builder, _("Body"),
+                               cm_room_message_event_get_body (rev));
+      }
+    }
+  }
 
   return ev_format_builder_end (builder);
 }
@@ -300,32 +391,6 @@ ev_matrix_client_details (GStrv unused, GError **err)
 }
 
 
-static char *
-ev_enum_to_nick (GType g_enum_type, gint value)
-{
-  char *result;
-  g_autoptr (GEnumClass) enum_class = NULL;
-  GEnumValue *enum_value;
-
-  g_return_val_if_fail (G_TYPE_IS_ENUM (g_enum_type), NULL);
-
-  enum_class = g_type_class_ref (g_enum_type);
-
-  /* Already warned */
-  if (enum_class == NULL)
-    return g_strdup_printf ("%d", value);
-
-  enum_value = g_enum_get_value (enum_class, value);
-
-  if (enum_value == NULL)
-    result = g_strdup_printf ("%d", value);
-  else
-    result = g_strdup (enum_value->value_nick);
-
-  return result;
-}
-
-
 static GString *
 ev_matrix_room_get_event (GStrv args, GError **err)
 {
@@ -347,16 +412,7 @@ ev_matrix_room_get_event (GStrv args, GError **err)
   room_id = args[0];
   event_id = args[1];
 
-  for (guint i = 0; i < g_list_model_get_n_items (joined_rooms); i++) {
-    g_autoptr (CmRoom) r = g_list_model_get_item (joined_rooms, i);
-    const char *id = cm_room_get_id (r);
-
-    if (g_str_equal (room_id, id)) {
-      room = g_steal_pointer (&r);
-      break;
-    }
-  }
-
+  room = get_joined_room_by_id (room_id);
   if (!room) {
     g_set_error (err, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "Room %s not found", room_id);
     return NULL;
@@ -524,6 +580,17 @@ matrix_command_opt_get_room_completion (const char *word, int pos)
 }
 
 
+static const EvCmdOpt matrix_room_events_opts[] = {
+  {
+    .name = "room-id",
+    .desc = "The id of the room to show the events for",
+    .completer = matrix_command_opt_get_room_completion,
+  },
+  /* Sentinel */
+  { NULL }
+};
+
+
 static const EvCmdOpt matrix_room_get_event_opts[] = {
   {
     .name = "room-id",
@@ -576,6 +643,12 @@ static EvCmd matrix_commands[] = {
     .help_summary = N_("Get details about a room - no request is made to the server"),
     .func = ev_matrix_room_details,
     .opts = matrix_room_details_opts,
+  },
+  {
+    .name = "room-events",
+    .help_summary = N_("List events in a room"),
+    .func = ev_matrix_room_events,
+    .opts = matrix_room_events_opts,
   },
   {
     .name = "get-event",
