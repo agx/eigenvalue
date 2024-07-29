@@ -40,6 +40,7 @@ libcmatrix_dep = dependency('libcmatrix',
   fallback: ['libcmatrix', 'libcmatrix_dep'],
   default_options: [
     'build-examples=false',
+    'build-tests=false',
   ])
 libedit_dep = dependency('libedit')
 
