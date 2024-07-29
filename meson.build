@@ -123,7 +123,3 @@ configure_file(
   input: 'run.in',
   output: 'run',
   configuration: run_data)
-
-gnome.post_install(
-  glib_compile_schemas: true,
-  )
