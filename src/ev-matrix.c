@@ -392,6 +392,43 @@ ev_matrix_client_details (GStrv unused, GError **err)
 
 
 static GString *
+ev_matrix_room_load_past_events (GStrv args, GError **err)
+{
+  g_autoptr (GError) local_err = NULL;
+  g_autoptr (CmRoom) room = NULL;
+  const char *room_id;
+  gboolean success;
+
+  g_assert (client);
+
+  if (g_strv_length (args) < 1) {
+    g_set_error (err, G_IO_ERROR, G_IO_ERROR_FAILED, "Not enough arguments");
+    return NULL;
+  }
+  room_id = args[0];
+
+  room = get_joined_room_by_id (room_id);
+  if (!room) {
+    g_set_error (err, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "Room %s not found", room_id);
+    return NULL;
+  }
+
+  success = cm_room_load_past_events_sync (room, &local_err);
+  if (!success) {
+    if (local_err) {
+      g_set_error (err, G_IO_ERROR, G_IO_ERROR_FAILED,
+                   _("Failed to load events: %s"), local_err->message);
+      return NULL;
+    } else {
+      g_string_new (_("No events loaded from database"));
+    }
+  }
+
+  return g_string_new (_("Loaded events from database"));
+}
+
+
+static GString *
 ev_matrix_room_get_event (GStrv args, GError **err)
 {
   g_autoptr (GError) local_err = NULL;
@@ -591,6 +628,17 @@ static const EvCmdOpt matrix_room_events_opts[] = {
 };
 
 
+static const EvCmdOpt matrix_room_load_past_events_opts[] = {
+  {
+    .name = "room-id",
+    .desc = "The id of the room to load the events for",
+    .completer = matrix_command_opt_get_room_completion,
+  },
+  /* Sentinel */
+  { NULL }
+};
+
+
 static const EvCmdOpt matrix_room_get_event_opts[] = {
   {
     .name = "room-id",
@@ -651,7 +699,13 @@ static EvCmd matrix_commands[] = {
     .opts = matrix_room_events_opts,
   },
   {
-    .name = "get-event",
+    .name = "room-load-past-events",
+    .help_summary = N_("Fetch past room events from the database"),
+    .func = ev_matrix_room_load_past_events,
+    .opts = matrix_room_load_past_events_opts,
+  },
+  {
+    .name = "room-get-event",
     .help_summary = N_("Get the given event from the server"),
     .func = ev_matrix_room_get_event,
     .opts = matrix_room_get_event_opts,
