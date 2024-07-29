@@ -40,6 +40,7 @@ libcmatrix_dep = dependency('libcmatrix',
   fallback: ['libcmatrix', 'libcmatrix_dep'],
   default_options: [
     'build-examples=false',
+    'build-tests=false',
   ])
 libedit_dep = dependency('libedit')
 
@@ -123,7 +124,3 @@ configure_file(
   input: 'run.in',
   output: 'run',
   configuration: run_data)
-
-gnome.post_install(
-  glib_compile_schemas: true,
-  )

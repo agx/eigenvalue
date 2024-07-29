@@ -1,0 +1,155 @@
+# German translation for eigenvalue
+# Copyright (C) 2024 THE eigenvalue'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the phosh package.
+#
+# Guido Günther <agx@sigxcpu.org>, 2024
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: eigenvalue\n"
+"POT-Creation-Date: 2024-07-29 12:10+0200\n"
+"PO-Revision-Date: 2024-07-29 12:10+0200\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/ev-matrix.c:282
+msgid "Room Id"
+msgstr ""
+
+#. Translators: a matrix room name
+#: src/ev-matrix.c:284
+msgid "Name"
+msgstr ""
+
+#: src/ev-matrix.c:285
+msgid "Topic"
+msgstr "Betreff"
+
+#: src/ev-matrix.c:286
+msgid "Encrypted"
+msgstr "Verschlüsselt"
+
+#: src/ev-matrix.c:287
+msgid "Yes"
+msgstr "Ja"
+
+#: src/ev-matrix.c:287
+msgid "No"
+msgstr "Nein"
+
+#: src/ev-matrix.c:288
+msgid "Unread notifications"
+msgstr "Ungelesene Nachrichten"
+
+#: src/ev-matrix.c:292 src/ev-matrix.c:326
+msgid "Events"
+msgstr ""
+
+#: src/ev-matrix.c:333
+msgid "Event Id"
+msgstr ""
+
+#. Translators: A matrix message event type
+#: src/ev-matrix.c:335
+msgid "Type"
+msgstr ""
+
+#: src/ev-matrix.c:342
+msgid "Content-Type"
+msgstr ""
+
+#: src/ev-matrix.c:345
+msgid "Body"
+msgstr ""
+
+#: src/ev-matrix.c:367
+msgid "User"
+msgstr ""
+
+#: src/ev-matrix.c:368
+msgid "Home server"
+msgstr ""
+
+#: src/ev-matrix.c:369
+msgid "Device ID"
+msgstr ""
+
+#: src/ev-matrix.c:383
+msgid "Fingerprint"
+msgstr ""
+
+#: src/ev-matrix.c:386
+msgid "Logged in"
+msgstr ""
+
+#: src/ev-matrix.c:386 src/ev-matrix.c:388
+msgid "yes"
+msgstr ""
+
+#: src/ev-matrix.c:386 src/ev-matrix.c:388
+msgid "no"
+msgstr ""
+
+#: src/ev-matrix.c:388
+msgid "Logging in"
+msgstr ""
+
+#: src/ev-matrix.c:420
+#, c-format
+msgid "Failed to load events: %s"
+msgstr ""
+
+#: src/ev-matrix.c:423
+msgid "No events loaded from database"
+msgstr ""
+
+#: src/ev-matrix.c:427
+msgid "Loaded events from database"
+msgstr ""
+
+#: src/ev-matrix.c:681
+msgid "Print client information - no request is made to the server"
+msgstr ""
+
+#: src/ev-matrix.c:686
+msgid "List currently known joined rooms - no request is made to the server"
+msgstr ""
+
+#: src/ev-matrix.c:691
+msgid "Get details about a room - no request is made to the server"
+msgstr ""
+
+#: src/ev-matrix.c:697
+msgid "List events in a room"
+msgstr ""
+
+#: src/ev-matrix.c:703
+msgid "Fetch past room events from the database"
+msgstr ""
+
+#: src/ev-matrix.c:709
+msgid "Get the given event from the server"
+msgstr ""
+
+#: src/ev-matrix.c:715
+msgid "Get the currently configured push servers from the server"
+msgstr ""
+
+#: src/ev-matrix.c:720
+msgid "Remove the pusher with the given id"
+msgstr ""
+
+#: src/ev-prompt.c:441
+msgid "Show this help"
+msgstr ""
+
+#: src/ev-prompt.c:447
+msgid "Print command history"
+msgstr ""
+
+#: src/ev-prompt.c:452
+msgid "Quit the application"
+msgstr ""
