@@ -1,2 +1,3 @@
 _build
+po/eigenvalue.pot
 subprojects/libcmatrix
