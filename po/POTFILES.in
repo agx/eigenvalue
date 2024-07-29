@@ -1,2 +1,3 @@
+data/org.sigxcpu.Eigenvalue.desktop.in
 src/ev-matrix.c
 src/ev-prompt.c
