@@ -1,0 +1,25 @@
+env:
+  DEPS: build-essential meson git libglib2.0-dev libedit-dev gettext desktop-file-utils
+  CMATRIX_DEPS: libsoup-3.0-dev libolm-dev libjson-glib-dev libsqlite3-dev libgcrypt20-dev libsecret-1-dev
+
+name: eigenvalue build
+run-name: Build on ${{ github.actor }}
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt -y install --no-install-recommends ${{ matrix.compiler }} $DEPS $CMATRIX_DEPS
+      - name: setup
+        run: CC=${{ matrix.compiler }} meson setup _build
+      - name: build
+        run: meson compile -C _build
+      - name: test
+        run: meson test -C _build
+      - name: check
+        run: _build/run --help
