@@ -228,7 +228,6 @@ ev_matrix_destroy (void)
   g_clear_object (&cancel);
 
   g_clear_pointer (&pushers, g_ptr_array_unref);
-  g_clear_object (&joined_rooms);
   g_clear_object (&client);
   g_clear_object (&matrix);
 }
