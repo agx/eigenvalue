@@ -181,8 +181,32 @@ on_matrix_open (GObject *object, GAsyncResult *result, gpointer user_data)
   }
 
   if (!client) {
+    g_autoptr (GError) error = NULL;
+    g_autofree char *homeserver = NULL;
+
     g_debug ("No client yet, creating a new one");
     client = cm_matrix_client_new (matrix);
+    cm_client_set_password (client, password);
+    cm_client_set_device_name (client, EV_PROJECT);
+
+    homeserver = cm_utils_get_homeserver_sync (username, &error);
+    if (!homeserver) {
+      g_critical ("Could not determine homeserver for user '%s': %s",
+                  username, error->message);
+      ev_quit ();
+      return;
+    }
+    cm_client_set_homeserver (client, homeserver);
+
+    account = cm_client_get_account (client);
+    if (!cm_account_set_login_id (account, username)) {
+      g_critical ("'%s' isn't a valid username", username);
+      ev_quit ();
+      return;
+    }
+
+    if (!cm_matrix_save_client_sync (matrix, client, NULL, &error))
+      g_warning ("Could not save client %p: %s", client, error->message);
   }
   cm_client_set_sync_callback (client, on_client_sync, NULL, NULL);
 
