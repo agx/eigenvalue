@@ -180,13 +180,7 @@ on_matrix_open (GObject *object, GAsyncResult *result, gpointer user_data)
   }
 
   if (!client) {
-    /*
-     * FIXME: On first startup libcmatrix will find all matrix accounts
-     * via load_accounts_from_secrets -> cm_secret_store_load_async
-     * independent from the application and will create clients for
-     * them. These will then not have a sync callback set and we crash.
-     */
-    g_warning ("No client yet, creating a new one");
+    g_debug ("No client yet, creating a new one");
     client = cm_matrix_client_new (matrix);
   }
   cm_client_set_sync_callback (client, on_client_sync, NULL, NULL);
