@@ -175,7 +175,8 @@ on_matrix_open (GObject *object, GAsyncResult *result, gpointer user_data)
      * a sync callback for it as it will otherwise assert() */
     if (g_strcmp0 (cm_account_get_login_id (a), username) == 0) {
       client = g_steal_pointer (&c);
-      break;
+    } else {
+      cm_client_set_enabled (c, FALSE);
     }
   }
 
