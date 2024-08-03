@@ -210,16 +210,6 @@ on_matrix_open (GObject *object, GAsyncResult *result, gpointer user_data)
   }
   cm_client_set_sync_callback (client, on_client_sync, NULL, NULL);
 
-  cm_client_set_password (client, password);
-  cm_client_set_device_name (client, EV_PROJECT);
-
-  account = cm_client_get_account (client);
-  if (!cm_account_set_login_id (account, username)) {
-    g_critical ("'%s' isn't a valid username", username);
-    ev_quit ();
-    return;
-  }
-
   g_print ("Logging in %s\n", username);
   cm_client_set_enabled (client, TRUE);
   joined_rooms = cm_client_get_joined_rooms (client);
