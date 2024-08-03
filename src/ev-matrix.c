@@ -29,6 +29,7 @@ static CmAccount *account;
 static GCancellable *cancel;
 static GListModel *joined_rooms;
 static GPtrArray *pushers;
+static GRegex *room_regex;
 
 
 static void
@@ -137,6 +138,14 @@ on_matrix_open (GObject *object, GAsyncResult *result, gpointer user_data)
   g_autoptr (GKeyFile) keyfile = g_key_file_new ();
   GListModel *clients;
 
+  /* The spec does not seem to specify which characters are actually valid
+   * https://spec.matrix.org/v1.11/appendices/#room-ids
+   * https://spec.matrix.org/v1.11/appendices/#room-aliases */
+  room_regex = g_regex_new ("^[!#].*:([a-z]+\\.?)+$",
+                            G_REGEX_CASELESS,
+                            G_REGEX_MATCH_DEFAULT,
+                            NULL);
+
   if (!cm_matrix_open_finish (matrix, result, &err)) {
     g_critical ("Error opening db: %s", err->message);
     ev_quit ();
@@ -242,6 +251,7 @@ ev_matrix_destroy (void)
   g_clear_pointer (&pushers, g_ptr_array_unref);
   g_clear_object (&client);
   g_clear_object (&matrix);
+  g_clear_pointer (&room_regex, g_regex_unref);
 }
 
 
@@ -608,6 +618,35 @@ ev_matrix_remove_pusher (GStrv args, GError **err)
 }
 
 
+static GString *
+ev_matrix_join_room (GStrv args, GError **err)
+{
+  const char *room;
+
+  g_assert (CM_IS_CLIENT (client));
+
+  if (g_strv_length (args) < 1) {
+    g_set_error (err, G_IO_ERROR, G_IO_ERROR_FAILED, "Not enough arguments");
+    return NULL;
+  }
+
+  if (g_strv_length (args) > 1) {
+    g_set_error (err, G_IO_ERROR, G_IO_ERROR_FAILED, "Too many arguments");
+    return NULL;
+  }
+
+  room = args[0];
+  if (!g_regex_match (room_regex, room, G_REGEX_MATCH_DEFAULT, NULL)) {
+    g_set_error (err, G_IO_ERROR, G_IO_ERROR_FAILED, "Not a valid room id or alias");
+    return NULL;
+  }
+
+  if (!cm_client_join_room_sync (client, room, err))
+    return NULL;
+
+  return g_string_new_take (g_strdup_printf ("Joined '%s'", room));
+}
+
 static GStrv
 matrix_command_opt_get_room_completion (const char *word, int pos)
 {
@@ -731,6 +770,11 @@ static EvCmd matrix_commands[] = {
     .help_summary = N_("Remove the pusher with the given id"),
     .func = ev_matrix_remove_pusher,
     .opts = matrix_get_remove_pusher_opts,
+  },
+  {
+    .name = "join",
+    .help_summary = N_("Join a room by its id or alias"),
+    .func = ev_matrix_join_room,
   },
   /* Sentinel */
   { NULL }
