@@ -202,6 +202,7 @@ on_matrix_open (GObject *object, GAsyncResult *result, gpointer user_data)
   }
 
   g_print ("Logging in %s\n", username);
+  cm_client_set_enabled (client, TRUE);
   joined_rooms = cm_client_get_joined_rooms (client);
 
   g_signal_connect_object (joined_rooms, "items-changed",
