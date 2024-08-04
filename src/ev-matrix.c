@@ -33,11 +33,11 @@ static GRegex *room_regex;
 
 
 static void
-on_client_sync (gpointer   object,
-                CmClient  *cm_client,
+on_client_sync (CmClient  *cm_client,
                 CmRoom    *room,
                 GPtrArray *events,
-                GError    *err)
+                GError    *err,
+                gpointer  user_data)
 {
   g_debug ("Got new client events");
 
