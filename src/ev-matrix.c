@@ -379,6 +379,7 @@ ev_matrix_client_details (GStrv unused, GError **err)
   g_autoptr (EvFormatBuilder) builder = ev_format_builder_new ();
   gboolean logged_in;
   const char *device_id;
+  char *versions;
 
   if (!client)
     return NULL;
@@ -387,6 +388,8 @@ ev_matrix_client_details (GStrv unused, GError **err)
   ev_format_builder_set_indent (builder, INFO_INDENT);
   ev_format_builder_add (builder, _("User"), cm_client_get_user_id (client));
   ev_format_builder_add (builder, _("Home server"), cm_client_get_homeserver (client));
+  versions = g_strjoinv (", ", (GStrv)cm_client_get_homeserver_versions (client));
+  ev_format_builder_take_value (builder, _("Home server versions"), versions);
   ev_format_builder_add (builder, _("Device ID"), device_id ?: "not logged in");
   if (device_id) {
     g_autoptr (GString) fp = NULL;
