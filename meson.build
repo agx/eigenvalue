@@ -36,6 +36,7 @@ gio_dep        = dependency('gio-2.0', version: glib_ver_cmp)
 gio_unix_dep   = dependency('gio-unix-2.0', version: glib_ver_cmp)
 glib_dep       = dependency('glib-2.0', version: glib_ver_cmp)
 gobject_dep    = dependency('gobject-2.0', version: glib_ver_cmp)
+gdkpixbuf_dep  = dependency('gdk-pixbuf-2.0')
 libcmatrix_dep = dependency('libcmatrix',
   fallback: ['libcmatrix', 'libcmatrix_dep'],
   default_options: [

@@ -1,4 +1,5 @@
-phosh_deps = [
+ev_deps = [
+  gdkpixbuf_dep,
   gio_dep,
   gio_unix_dep,
   glib_dep,
@@ -16,6 +17,6 @@ eigenvalue = executable(
     'ev-matrix.c',
     'ev-prompt.c',
   ],
-  dependencies: phosh_deps,
+  dependencies: ev_deps,
   install: true,
 )

@@ -14,6 +14,7 @@
 
 #include <gio/gio.h>
 #include <glib/gi18n.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include "cmatrix.h"
 
@@ -650,6 +651,103 @@ ev_matrix_join_room (GStrv args, GError **err)
   return g_string_new_take (g_strdup_printf ("Joined '%s'", room));
 }
 
+typedef struct {
+  GAsyncResult *res;
+  GMainLoop    *loop;
+} EvSyncData;
+
+static void
+on_image_upload_sync_cb (GObject      *object,
+                         GAsyncResult *res,
+                         gpointer      user_data)
+{
+  EvSyncData *data = user_data;
+  data->res = g_object_ref (res);
+  g_main_loop_quit (data->loop);
+}
+
+static GString *
+ev_matrix_upload_image (GStrv args, GError **error)
+{
+  EvSyncData data;
+  CmRoom *room = NULL;
+  g_autoptr (GFile) file = NULL;
+  g_autoptr (GFileInfo) info = NULL;
+  g_autoptr (GInputStream) stream = NULL;
+  g_autoptr (GMainContext) context = NULL;
+  g_autoptr (GMainLoop) loop = NULL;
+  g_autoptr (GdkPixbuf) pixbuf = NULL;
+  g_autofree char *mime_type = NULL;
+  const char *room_id;
+  const char *file_path;
+  const char *content_type;
+  char *uri;
+  int width, height;
+
+  g_assert (CM_IS_CLIENT (client));
+
+  context = g_main_context_new ();
+  g_main_context_push_thread_default (context);
+  loop = g_main_loop_new (context, FALSE);
+
+  data = (EvSyncData) {
+    .loop = loop,
+    .res = NULL
+  };
+
+  room_id = args[0];
+  for (guint i = 0; i < g_list_model_get_n_items (joined_rooms); i++) {
+    g_autoptr (CmRoom) r = g_list_model_get_item (joined_rooms, i);
+    if (g_strcmp0 (cm_room_get_id (r), room_id) == 0)
+      room = r;
+  }
+
+  if (!room) {
+    g_set_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "Not a valid room id");
+    return NULL;
+  }
+
+  file_path = args[1];
+  file = g_file_new_for_path (file_path);
+  if (!file) {
+    g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED, "Not a valid file path");
+    return NULL;
+  }
+
+  info = g_file_query_info (file, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
+                            G_FILE_QUERY_INFO_NONE, NULL, error);
+  if (!info)
+    return NULL;
+
+  content_type = g_file_info_get_content_type (info);
+  mime_type = g_content_type_get_mime_type (content_type);
+
+  pixbuf = gdk_pixbuf_new_from_file (file_path, error);
+  if (!pixbuf)
+    return NULL;
+
+  width = gdk_pixbuf_get_width (pixbuf);
+  height = gdk_pixbuf_get_height (pixbuf);
+
+  stream = G_INPUT_STREAM (g_file_read (file, NULL, error));
+  if (!stream)
+    return NULL;
+
+  cm_room_send_image_async (room, stream, "Image",
+                            file_path, mime_type, width, height,
+                            NULL, NULL, NULL,
+                            on_image_upload_sync_cb, &data);
+
+  g_main_loop_run (loop);
+
+  uri = cm_room_send_image_finish (room, data.res, error);
+  g_object_unref (data.res);
+  g_main_context_pop_thread_default (context);
+
+  return g_string_new_take (uri);
+}
+
+
 static GStrv
 matrix_command_opt_get_room_completion (const char *word, int pos)
 {
@@ -727,6 +825,20 @@ static const EvCmdOpt matrix_get_remove_pusher_opts[] = {
   { NULL }
 };
 
+static const EvCmdOpt matrix_upload_image_opts[] = {
+  {
+    .name = "room-id",
+    .desc = "The id of the room to upload the image for",
+    .completer = matrix_command_opt_get_room_completion,
+  },
+  {
+    .name = "file-path",
+    .desc = "The path of the image to upload",
+  },
+  /* Sentinel */
+  { NULL }
+};
+
 
 static EvCmd matrix_commands[] = {
   {
@@ -778,6 +890,12 @@ static EvCmd matrix_commands[] = {
     .name = "join",
     .help_summary = N_("Join a room by its id or alias"),
     .func = ev_matrix_join_room,
+  },
+  {
+    .name = "upload-image",
+    .help_summary = N_("Upload an image"),
+    .func = ev_matrix_upload_image,
+    .opts = matrix_upload_image_opts,
   },
   /* Sentinel */
   { NULL }
