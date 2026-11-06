@@ -650,6 +650,66 @@ ev_matrix_join_room (GStrv args, GError **err)
   return g_string_new_take (g_strdup_printf ("Joined '%s'", room));
 }
 
+static GString *
+ev_matrix_set_sync_mode (GStrv args, GError **err)
+{
+  const char *msg;
+  CmSyncMode mode;
+
+  g_assert (CM_IS_CLIENT (client));
+
+  if (g_strv_length (args) < 1) {
+    g_set_error_literal (err, G_IO_ERROR, G_IO_ERROR_FAILED, "Not enough arguments");
+    return NULL;
+  }
+
+  if (g_strv_length (args) > 1) {
+    g_set_error_literal (err, G_IO_ERROR, G_IO_ERROR_FAILED, "Too many arguments");
+    return NULL;
+  }
+
+  if (g_str_equal (args[0], "continuous")) {
+    mode = CM_SYNC_MODE_CONTINUOUS;
+  } else if (g_str_equal (args[0], "manual")) {
+    mode = CM_SYNC_MODE_MANUAL;
+  } else {
+    g_set_error (err, G_IO_ERROR, G_IO_ERROR_FAILED, "Unnown mode %s", args[0]);
+    return NULL;
+  }
+
+  cm_client_set_sync_mode (client, mode);
+  msg = mode == CM_SYNC_MODE_CONTINUOUS ? _("Continuous sync") : _("Manual sync");
+  return g_string_new (msg);
+}
+
+
+static GString *
+ev_matrix_sync_once (GStrv args, GError **err)
+{
+  g_autoptr (GError) local_err = NULL;
+  g_autoptr (EvFormatBuilder) builder = NULL;
+  gboolean success;
+
+  g_assert (CM_IS_CLIENT (client));
+
+  if (cm_client_get_sync_mode (client) != CM_SYNC_MODE_MANUAL) {
+    g_set_error_literal (err, G_IO_ERROR, G_IO_ERROR_FAILED,
+                         "Syncing not in manual mode");
+    return NULL;
+  }
+
+  success = cm_client_sync_once_sync (client, cancel, &local_err);
+  if (!success) {
+    g_set_error (err, G_IO_ERROR, G_IO_ERROR_FAILED,
+                 "Failed to run sync: %s", local_err->message);
+    return NULL;
+  }
+
+  return g_string_new (_("Sync finished."));
+}
+
+/* Completions */
+
 static GStrv
 matrix_command_opt_get_room_completion (const char *word, int pos)
 {
@@ -669,6 +729,22 @@ matrix_command_opt_get_room_completion (const char *word, int pos)
   return g_strv_builder_end (builder);
 }
 
+
+static GStrv
+matrix_command_opt_set_sync_mode_completion (const char *word, int pos)
+{
+  g_autoptr (GStrvBuilder) builder = g_strv_builder_new ();
+
+  if (strncmp ("continuous", word, pos) == 0) {
+    g_strv_builder_add (builder, "continuous");
+  } else if (strncmp ("manual", word, pos) == 0) {
+    g_strv_builder_add (builder, "manual");
+  }
+
+  return g_strv_builder_end (builder);
+}
+
+/* Opts */
 
 static const EvCmdOpt matrix_room_events_opts[] = {
   {
@@ -728,6 +804,18 @@ static const EvCmdOpt matrix_get_remove_pusher_opts[] = {
 };
 
 
+static const EvCmdOpt matrix_get_set_sync_mode_opts[] = {
+  {
+    .name = "mode",
+    .desc = "The sync mode",
+    .completer = matrix_command_opt_set_sync_mode_completion,
+  },
+  /* Sentinel */
+  { NULL }
+};
+
+/* Commands */
+
 static EvCmd matrix_commands[] = {
   {
     .name = "client-details",
@@ -778,6 +866,17 @@ static EvCmd matrix_commands[] = {
     .name = "join",
     .help_summary = N_("Join a room by its id or alias"),
     .func = ev_matrix_join_room,
+  },
+  {
+    .name = "sync-mode",
+    .help_summary = N_("Suspend continuous sync"),
+    .func = ev_matrix_set_sync_mode,
+    .opts = matrix_get_set_sync_mode_opts,
+  },
+  {
+    .name = "sync-once",
+    .help_summary = N_("Run oneshot sync"),
+    .func = ev_matrix_sync_once,
   },
   /* Sentinel */
   { NULL }

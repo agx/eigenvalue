@@ -349,6 +349,9 @@ on_stdin_ready (int fd, GIOCondition condition, gpointer data)
 
   buf = el_gets (el, &num);
   li = el_line (el);
+  if (li->lastchar == li->buffer)
+    return G_SOURCE_CONTINUE;
+
   if (*(li->lastchar - 1) != '\n')
     return G_SOURCE_CONTINUE;
 
